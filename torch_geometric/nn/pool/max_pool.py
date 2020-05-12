@@ -1,12 +1,12 @@
+from torch_scatter import scatter
 from torch_geometric.data import Batch
-from torch_geometric.utils import scatter_
 
 from .consecutive import consecutive_cluster
 from .pool import pool_edge, pool_batch, pool_pos
 
 
 def _max_pool_x(cluster, x, size=None):
-    return scatter_('max', x, cluster, dim=0, dim_size=size)
+    return scatter(x, cluster, dim=0, dim_size=size, reduce='max')
 
 
 def max_pool_x(cluster, x, batch, size=None):
@@ -61,7 +61,7 @@ def max_pool(cluster, data, transform=None):
     """
     cluster, perm = consecutive_cluster(cluster)
 
-    x = _max_pool_x(cluster, data.x)
+    x = None if data.x is None else _max_pool_x(cluster, data.x)
     index, attr = pool_edge(cluster, data.edge_index, data.edge_attr)
     batch = None if data.batch is None else pool_batch(perm, data.batch)
     pos = None if data.pos is None else pool_pos(cluster, data.pos)

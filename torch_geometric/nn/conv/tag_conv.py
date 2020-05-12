@@ -1,7 +1,7 @@
+import torch
 from torch.nn import Linear
 from torch_scatter import scatter_add
 from torch_geometric.nn.conv import MessagePassing
-import torch
 
 
 class TAGConv(MessagePassing):
@@ -10,7 +10,7 @@ class TAGConv(MessagePassing):
      <https://arxiv.org/abs/1710.10370>`_ paper
 
     .. math::
-        \mathbf{X}^{\prime} = \sum_{k=0}^K \mathbf{D}^{-1/2} \mathbf{A}
+        \mathbf{X}^{\prime} = \sum_{k=0}^K \mathbf{D}^{-1/2} \mathbf{A}^k
         \mathbf{D}^{-1/2}\mathbf{X} \mathbf{\Theta}_{k},
 
     where :math:`\mathbf{A}` denotes the adjacency matrix and
@@ -55,8 +55,8 @@ class TAGConv(MessagePassing):
 
     def forward(self, x, edge_index, edge_weight=None):
         """"""
-        edge_index, norm = self.norm(edge_index, x.size(0), edge_weight,
-                                     dtype=x.dtype)
+        edge_index, norm = self.norm(edge_index, x.size(self.node_dim),
+                                     edge_weight, dtype=x.dtype)
 
         xs = [x]
         for k in range(self.K):

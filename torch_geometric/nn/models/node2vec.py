@@ -1,6 +1,10 @@
 import torch
-from torch_cluster import random_walk
 from sklearn.linear_model import LogisticRegression
+
+try:
+    from torch_cluster import random_walk
+except ImportError:
+    random_walk = None
 
 EPS = 1e-15
 
@@ -28,11 +32,17 @@ class Node2Vec(torch.nn.Module):
         num_negative_samples (int, optional): The number of negative samples to
             use for each node. If set to :obj:`None`, this parameter gets set
             to :obj:`context_size - 1`. (default: :obj:`None`)
+        sparse (bool, optional): If set to :obj:`True`, gradients w.r.t. to the
+            weight matrix will be sparse. (default: :obj:`False`)
     """
-
     def __init__(self, num_nodes, embedding_dim, walk_length, context_size,
-                 walks_per_node=1, p=1, q=1, num_negative_samples=None):
+                 walks_per_node=1, p=1, q=1, num_negative_samples=None,
+                 sparse=False):
         super(Node2Vec, self).__init__()
+
+        if random_walk is None:
+            raise ImportError('`Node2Vec` requires `torch-cluster`.')
+
         assert walk_length >= context_size
         self.num_nodes = num_nodes
         self.embedding_dim = embedding_dim
@@ -43,16 +53,20 @@ class Node2Vec(torch.nn.Module):
         self.q = q
         self.num_negative_samples = num_negative_samples
 
-        self.embedding = torch.nn.Embedding(num_nodes, embedding_dim)
+        self.embedding = torch.nn.Embedding(num_nodes, embedding_dim,
+                                            sparse=sparse)
 
         self.reset_parameters()
 
     def reset_parameters(self):
         self.embedding.reset_parameters()
 
-    def forward(self, subset):
+    def forward(self, subset=None):
         """Returns the embeddings for the nodes in :obj:`subset`."""
-        return self.embedding(subset)
+        if subset is None:
+            return self.embedding.weight
+        else:
+            return self.embedding(subset)
 
     def __random_walk__(self, edge_index, subset=None):
         if subset is None:
@@ -60,7 +74,8 @@ class Node2Vec(torch.nn.Module):
         subset = subset.repeat(self.walks_per_node)
 
         rw = random_walk(edge_index[0], edge_index[1], subset,
-                         self.walk_length, self.p, self.q, self.num_nodes)
+                         self.walk_length, self.p, self.q, False,
+                         self.num_nodes)
 
         walks = []
         num_walks_per_rw = 1 + self.walk_length + 1 - self.context_size
@@ -74,10 +89,10 @@ class Node2Vec(torch.nn.Module):
         walk = self.__random_walk__(edge_index, subset)
         start, rest = walk[:, 0], walk[:, 1:].contiguous()
 
-        h_start = self.embedding(start).view(
-            walk.size(0), 1, self.embedding_dim)
-        h_rest = self.embedding(rest.view(-1)).view(
-            walk.size(0), rest.size(1), self.embedding_dim)
+        h_start = self.embedding(start).view(walk.size(0), 1,
+                                             self.embedding_dim)
+        h_rest = self.embedding(rest.view(-1)).view(walk.size(0), rest.size(1),
+                                                    self.embedding_dim)
 
         out = (h_start * h_rest).sum(dim=-1).view(-1)
         pos_loss = -torch.log(torch.sigmoid(out) + EPS).mean()
@@ -108,6 +123,7 @@ class Node2Vec(torch.nn.Module):
                          test_y.detach().cpu().numpy())
 
     def __repr__(self):
-        return '{}({}, {}, p={}, q={})'.format(
-            self.__class__.__name__, self.num_nodes, self.embedding_dim,
-            self.p, self.q)
+        return '{}({}, {}, p={}, q={})'.format(self.__class__.__name__,
+                                               self.num_nodes,
+                                               self.embedding_dim, self.p,
+                                               self.q)

@@ -12,3 +12,4 @@ alpha/
 
 !torch_geometric/data/
 !test/data/
+.DS_Store

@@ -1,11 +1,13 @@
 from .karate import KarateClub
 from .tu_dataset import TUDataset
 from .planetoid import Planetoid
-from .cora_full import CoraFull
+from .citation_full import CitationFull, CoraFull
 from .coauthor import Coauthor
 from .amazon import Amazon
 from .ppi import PPI
 from .reddit import Reddit
+from .flickr import Flickr
+from .yelp import Yelp
 from .qm7 import QM7b
 from .qm9 import QM9
 from .entities import Entities
@@ -28,16 +30,22 @@ from .willow_object_class import WILLOWObjectClass
 from .dbp15k import DBP15K
 from .pascal import PascalVOCKeypoints
 from .pascal_pf import PascalPF
+from .snap_dataset import SNAPDataset
+from .suite_sparse import SuiteSparseMatrixCollection
+from .particle import TrackMLParticleTrackingDataset
 
 __all__ = [
     'KarateClub',
     'TUDataset',
     'Planetoid',
+    'CitationFull',
     'CoraFull',
     'Coauthor',
     'Amazon',
     'PPI',
     'Reddit',
+    'Flickr',
+    'Yelp',
     'QM7b',
     'QM9',
     'Entities',
@@ -60,4 +68,7 @@ __all__ = [
     'WILLOWObjectClass',
     'PascalVOCKeypoints',
     'PascalPF',
+    'SNAPDataset',
+    'SuiteSparseMatrixCollection',
+    'TrackMLParticleTrackingDataset',
 ]
